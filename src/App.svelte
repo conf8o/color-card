@@ -1,5 +1,4 @@
 <script>
-  import { get } from "svelte/store";
   import { pccsColorMap } from "./lib/pccs_color";
 
   // 利用可能なトーンのリスト
