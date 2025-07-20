@@ -1,4 +1,5 @@
 <script>
+  import { on } from "svelte/events";
   import { pccs_color_map } from "./lib/pccs_color";
 
   // 利用可能なトーンのリスト
@@ -76,14 +77,10 @@
   }
 
   function onPanelClicked(panelIndex) {
-    // 既に選択されているパネルをクリックしたら選択解除
-    if (panelIndex === selectedPanelIndex) {
+    if (selectedPanelIndex === panelIndex) {
       selectedPanelIndex = -1;
     } else {
       selectedPanelIndex = panelIndex;
-      // 現在のパネルのトーンに合わせてトーン選択UIも更新
-      selectedTone = colorPanels[panelIndex].tone;
-      selectedColor = colorPanels[panelIndex].color;
     }
   }
 
@@ -93,7 +90,7 @@
       ...colorPanels,
       { tone: randomResult.tone, color: randomResult.color },
     ];
-    selectedPanelIndex = colorPanels.length - 1; // 新しいパネルをアクティブにする
+    onPanelClicked(colorPanels.length - 1); // 新しいパネルを選択状態にする
   }
 
   function onDeletePanel() {
@@ -315,14 +312,11 @@
     justify-content: center;
     font-weight: bold;
     font-size: 0.9rem;
+    transition: transform 0.2s;
   }
 
   .color-item:hover {
     transform: scale(1.05);
-  }
-
-  .color-item.selected {
-    border: 2px solid #000;
   }
 
   .add-panel-btn {
