@@ -7,6 +7,10 @@
   // 選択した色を配列で管理（初期値はランダム）
   const initialRandom = getRandomColor();
 
+  // ----------------
+  // 状態管理
+  // ----------------
+
   let selectedTone = initialRandom.tone;
   let selectedColor = initialRandom.color;
 
@@ -16,7 +20,7 @@
 
   // ----------------
   // ヘルパー関数
-  // ---------------
+  // ----------------
 
   // ランダムなトーンと色を取得する関数
   function getRandomColor() {
