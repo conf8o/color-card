@@ -1,8 +1,9 @@
 <script>
-  import { pccs_color_map } from "./lib/pccs_color";
+  import { get } from "svelte/store";
+  import { pccsColorMap } from "./lib/pccs_color";
 
   // 利用可能なトーンのリスト
-  const tones = Array.from(pccs_color_map.keys());
+  const tones = Array.from(pccsColorMap.keys());
 
   // 選択した色を配列で管理（初期値はランダム）
   const initialRandom = getRandomColor();
@@ -12,17 +13,19 @@
   // ----------------
 
   let selectedTone = initialRandom.tone;
-  let selectedColor = initialRandom.color;
+  let selectedColorIndex = initialRandom.colorIndex;
 
-  // 各パネルは (トーン, 色, 色相番号) の組で管理
+  // 各パネルは (トーン, 色相番号) の組で管理
   let colorPanels = [
     {
       tone: initialRandom.tone,
-      color: initialRandom.color,
       colorIndex: initialRandom.colorIndex,
     },
   ];
   let selectedPanelIndex = 0;
+
+  // コピー成功時のフィードバック表示用
+  let showCopyFeedback = false;
 
   // ----------------
   // ヘルパー関数
@@ -30,12 +33,10 @@
 
   function getRandomColor() {
     const randomTone = tones[Math.floor(Math.random() * tones.length)];
-    const colors = pccs_color_map.get(randomTone);
+    const colors = pccsColorMap.get(randomTone);
     const randomColorIndex = Math.floor(Math.random() * colors.length);
-    const randomColor = colors[randomColorIndex];
     return {
       tone: randomTone,
-      color: randomColor,
       colorIndex: randomColorIndex,
     };
   }
@@ -54,12 +55,20 @@
     return brightness > 128 ? "#000000" : "#ffffff";
   }
 
+  function toColor(tone, index) {
+    if (pccsColorMap.has(tone)) {
+      const colors = pccsColorMap.get(tone);
+      return colors[index] || "#FFFFFF"; // デフォルトは白
+    }
+    return "#FFFFFF"; // トーンが存在しない場合のデフォルト
+  }
+
   function isPanelSelected() {
     return selectedPanelIndex >= 0;
   }
 
   // PCCS記号を生成する関数
-  function pccsCode(tone, index) {
+  function toPccsCode(tone, index) {
     return `${tone}-${index + 1}`;
   }
 
@@ -68,6 +77,10 @@
       .writeText(s)
       .then(() => {
         console.log("クリップボードにコピーしました:", s);
+        showCopyFeedback = true;
+        setTimeout(() => {
+          showCopyFeedback = false;
+        }, 2000);
       })
       .catch((err) => {
         console.error("クリップボードへのコピーに失敗しました:", err);
@@ -82,14 +95,13 @@
     selectedTone = tone;
   }
 
-  function onColorChanged(color, colorIndex) {
+  function onColorChanged(colorIndex) {
     if (isPanelSelected()) {
-      selectedColor = color;
+      selectedColorIndex = colorIndex;
 
       // アクティブなパネルの色を更新
       colorPanels[selectedPanelIndex] = {
         tone: selectedTone,
-        color: selectedColor,
         colorIndex: colorIndex,
       };
       colorPanels = [...colorPanels]; // 状態更新のため再代入
@@ -110,7 +122,6 @@
       ...colorPanels,
       {
         tone: randomResult.tone,
-        color: randomResult.color,
         colorIndex: randomResult.colorIndex,
       },
     ];
@@ -125,21 +136,18 @@
     if (selectedPanelIndex >= colorPanels.length) {
       selectedPanelIndex = colorPanels.length - 1;
       selectedTone = colorPanels[selectedPanelIndex].tone;
-      selectedColor = colorPanels[selectedPanelIndex].color;
+      selectedColorIndex = colorPanels[selectedPanelIndex].colorIndex;
     }
   }
 
   // PCCS記号一覧をクリップボードにコピーする
   function onCopyPccsToClipboard() {
     const clipboardText = colorPanels
-      .map((panel) => pccsCode(panel.tone, panel.colorIndex))
+      .map((panel) => toPccsCode(panel.tone, panel.colorIndex))
       .join(",");
 
     copyToClipboard(clipboardText);
   }
-
-  // コピー成功時のフィードバック表示用
-  let showCopyFeedback = false;
 </script>
 
 <main>
@@ -155,7 +163,7 @@
               class="tone-item"
               style={((c) =>
                 `background-color: ${c}; color: ${getTextColor(c)};`)(
-                pccs_color_map.get(tone)[6],
+                toColor(tone, 6),
               )}
               on:click={() => onToneChanged(tone)}
               class:selected={tone === selectedTone}
@@ -171,19 +179,20 @@
       <section class="color-list">
         <h3>色</h3>
         <div class="color-swatches">
-          {#if selectedTone && pccs_color_map.has(selectedTone)}
-            {#each pccs_color_map.get(selectedTone) as color, index}
+          {#if selectedTone && pccsColorMap.has(selectedTone)}
+            {#each pccsColorMap.get(selectedTone) as color, index}
               <button
                 class="color-item"
                 style="background-color: {color}; color: {getTextColor(color)};"
-                on:click={() => onColorChanged(color, index)}
+                on:click={() => onColorChanged(index)}
                 class:selected={colorPanels.some(
-                  (panel) => panel.color === color,
+                  (panel) =>
+                    panel.tone === selectedTone && panel.colorIndex === index,
                 )}
-                aria-label="{pccsCode(selectedTone, index)}: {color} を選択"
+                aria-label="{toPccsCode(selectedTone, index)}: {color} を選択"
                 type="button"
               >
-                {pccsCode(selectedTone, index)}
+                {toPccsCode(selectedTone, index)}
               </button>
             {/each}
           {/if}
@@ -199,7 +208,10 @@
             <div class="panel-wrapper">
               <button
                 class="color-panel"
-                style="background-color: {panel.color};"
+                style="background-color: {toColor(
+                  panel.tone,
+                  panel.colorIndex,
+                )};"
                 class:active={i === selectedPanelIndex}
                 on:click={(e) => {
                   e.stopPropagation();
@@ -210,9 +222,9 @@
               >
                 <div class="panel-info">
                   <p>
-                    {pccsCode(panel.tone, panel.colorIndex)}
+                    {toPccsCode(panel.tone, panel.colorIndex)}
                   </p>
-                  <p>{panel.color}</p>
+                  <p>{toColor(panel.tone, panel.colorIndex)}</p>
                 </div>
               </button>
 
