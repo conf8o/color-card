@@ -2,7 +2,7 @@
 
 配色カード、色見本の簡易アプリ
 
-<img width="1150" height="787" alt="image" src="https://github.com/user-attachments/assets/8903d280-26a8-455d-ab47-66ef290ac43e" />
+<img width="1099" height="825" alt="image" src="https://github.com/user-attachments/assets/809ddee2-8d80-4e69-83ea-331e6deaa95c" />
 
 # How to run
 
