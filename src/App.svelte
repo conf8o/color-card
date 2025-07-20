@@ -14,7 +14,7 @@
   let selectedTone = initialRandom.tone;
   let selectedColor = initialRandom.color;
 
-  // 各パネルはトーンと色と色相番号のペアで管理
+  // 各パネルは (トーン, 色, 色相番号) の組で管理
   let colorPanels = [
     {
       tone: initialRandom.tone,
@@ -59,15 +59,25 @@
   }
 
   // PCCS記号を生成する関数
-  function pccs_code(tone, index) {
+  function pccsCode(tone, index) {
     return `${tone}-${index + 1}`;
+  }
+
+  function copyToClipboard(s) {
+    navigator.clipboard
+      .writeText(s)
+      .then(() => {
+        console.log("クリップボードにコピーしました:", s);
+      })
+      .catch((err) => {
+        console.error("クリップボードへのコピーに失敗しました:", err);
+      });
   }
 
   // ----------------
   // イベントハンドラ
   // ----------------
 
-  // トーンが変更されたときの処理
   function onToneChanged(tone) {
     selectedTone = tone;
   }
@@ -82,7 +92,7 @@
         color: selectedColor,
         colorIndex: colorIndex,
       };
-      colorPanels = [...colorPanels]; // 配列の変更を検知させる
+      colorPanels = [...colorPanels]; // 状態更新のため再代入
     }
   }
 
@@ -108,7 +118,6 @@
   }
 
   function onDeletePanel() {
-    // 選択したパネルを削除
     colorPanels = colorPanels.filter(
       (_, index) => index !== selectedPanelIndex,
     );
@@ -122,22 +131,11 @@
 
   // PCCS記号一覧をクリップボードにコピーする
   function onCopyPccsToClipboard() {
-    const pccsTextList = colorPanels.map((panel) =>
-      pccs_code(panel.tone, panel.colorIndex),
-    );
+    const clipboardText = colorPanels
+      .map((panel) => pccsCode(panel.tone, panel.colorIndex))
+      .join(",");
 
-    const clipboardText = pccsTextList.join(",");
-    navigator.clipboard
-      .writeText(clipboardText)
-      .then(() => {
-        showCopyFeedback = true;
-        setTimeout(() => {
-          showCopyFeedback = false;
-        }, 2000);
-      })
-      .catch((err) => {
-        console.error("クリップボードへのコピーに失敗しました:", err);
-      });
+    copyToClipboard(clipboardText);
   }
 
   // コピー成功時のフィードバック表示用
@@ -182,10 +180,10 @@
                 class:selected={colorPanels.some(
                   (panel) => panel.color === color,
                 )}
-                aria-label="{pccs_code(selectedTone, index)}: {color} を選択"
+                aria-label="{pccsCode(selectedTone, index)}: {color} を選択"
                 type="button"
               >
-                {pccs_code(selectedTone, index)}
+                {pccsCode(selectedTone, index)}
               </button>
             {/each}
           {/if}
@@ -212,7 +210,7 @@
               >
                 <div class="panel-info">
                   <p>
-                    {pccs_code(panel.tone, panel.colorIndex)}
+                    {pccsCode(panel.tone, panel.colorIndex)}
                   </p>
                   <p>{panel.color}</p>
                 </div>
