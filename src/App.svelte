@@ -14,20 +14,30 @@
   let selectedTone = initialRandom.tone;
   let selectedColor = initialRandom.color;
 
-  // 各パネルはトーンと色のペアで管理
-  let colorPanels = [{ tone: initialRandom.tone, color: initialRandom.color }];
+  // 各パネルはトーンと色と色相番号のペアで管理
+  let colorPanels = [
+    {
+      tone: initialRandom.tone,
+      color: initialRandom.color,
+      colorIndex: initialRandom.colorIndex,
+    },
+  ];
   let selectedPanelIndex = 0;
 
   // ----------------
   // ヘルパー関数
   // ----------------
 
-  // ランダムなトーンと色を取得する関数
   function getRandomColor() {
     const randomTone = tones[Math.floor(Math.random() * tones.length)];
     const colors = pccs_color_map.get(randomTone);
-    const randomColor = colors[Math.floor(Math.random() * colors.length)];
-    return { tone: randomTone, color: randomColor };
+    const randomColorIndex = Math.floor(Math.random() * colors.length);
+    const randomColor = colors[randomColorIndex];
+    return {
+      tone: randomTone,
+      color: randomColor,
+      colorIndex: randomColorIndex,
+    };
   }
 
   // 色の明るさを判定してテキスト色を決定する
@@ -48,6 +58,11 @@
     return selectedPanelIndex >= 0;
   }
 
+  // PCCS記号を生成する関数
+  function pccs_code(tone, index) {
+    return `${tone}-${index + 1}`;
+  }
+
   // ----------------
   // イベントハンドラ
   // ----------------
@@ -57,7 +72,7 @@
     selectedTone = tone;
   }
 
-  function onColorChanged(color) {
+  function onColorChanged(color, colorIndex) {
     if (isPanelSelected()) {
       selectedColor = color;
 
@@ -65,6 +80,7 @@
       colorPanels[selectedPanelIndex] = {
         tone: selectedTone,
         color: selectedColor,
+        colorIndex: colorIndex,
       };
       colorPanels = [...colorPanels]; // 配列の変更を検知させる
     }
@@ -82,7 +98,11 @@
     const randomResult = getRandomColor();
     colorPanels = [
       ...colorPanels,
-      { tone: randomResult.tone, color: randomResult.color },
+      {
+        tone: randomResult.tone,
+        color: randomResult.color,
+        colorIndex: randomResult.colorIndex,
+      },
     ];
     onPanelClicked(colorPanels.length - 1); // 新しいパネルを選択状態にする
   }
@@ -99,6 +119,29 @@
       selectedColor = colorPanels[selectedPanelIndex].color;
     }
   }
+
+  // PCCS記号一覧をクリップボードにコピーする
+  function onCopyPccsToClipboard() {
+    const pccsTextList = colorPanels.map((panel) =>
+      pccs_code(panel.tone, panel.colorIndex),
+    );
+
+    const clipboardText = pccsTextList.join(",");
+    navigator.clipboard
+      .writeText(clipboardText)
+      .then(() => {
+        showCopyFeedback = true;
+        setTimeout(() => {
+          showCopyFeedback = false;
+        }, 2000);
+      })
+      .catch((err) => {
+        console.error("クリップボードへのコピーに失敗しました:", err);
+      });
+  }
+
+  // コピー成功時のフィードバック表示用
+  let showCopyFeedback = false;
 </script>
 
 <main>
@@ -135,14 +178,14 @@
               <button
                 class="color-item"
                 style="background-color: {color}; color: {getTextColor(color)};"
-                on:click={() => onColorChanged(color)}
+                on:click={() => onColorChanged(color, index)}
                 class:selected={colorPanels.some(
                   (panel) => panel.color === color,
                 )}
-                aria-label="{selectedTone}-{index + 1}: {color} を選択"
+                aria-label="{pccs_code(selectedTone, index)}: {color} を選択"
                 type="button"
               >
-                {selectedTone}-{index + 1}
+                {pccs_code(selectedTone, index)}
               </button>
             {/each}
           {/if}
@@ -169,9 +212,7 @@
               >
                 <div class="panel-info">
                   <p>
-                    {panel.tone}-{pccs_color_map
-                      .get(panel.tone)
-                      .indexOf(panel.color) + 1}
+                    {pccs_code(panel.tone, panel.colorIndex)}
                   </p>
                   <p>{panel.color}</p>
                 </div>
@@ -203,8 +244,21 @@
             <span>+</span>
           </button>
         </div>
+      </div>
 
-        <!-- 各パネル毎の削除ボタンは表示しない -->
+      <!-- PCCSコードをコピーするボタン -->
+      <div class="copy-button-container">
+        <button
+          class="copy-button"
+          on:click={() => onCopyPccsToClipboard()}
+          aria-label="PCCS記号をクリップボードにコピー"
+          type="button"
+        >
+          PCCS記号をコピー
+        </button>
+        {#if showCopyFeedback}
+          <div class="copy-feedback">コピーしました！</div>
+        {/if}
       </div>
     </div>
   </div>
@@ -254,7 +308,7 @@
 
   .tone-swatches {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 0.5rem;
     padding: 0.5rem;
     border: 1px solid #eee;
@@ -429,5 +483,58 @@
 
   .panel-info p {
     margin: 2px 0;
+  }
+
+  .copy-button-container {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+    position: relative;
+  }
+
+  .copy-button {
+    background-color: #4a6cf7;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+
+  .copy-button:hover {
+    background-color: #3a57d7;
+  }
+
+  .copy-feedback {
+    position: absolute;
+    right: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    animation:
+      fadeIn 0.3s,
+      fadeOut 0.3s 1.7s;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes fadeOut {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
   }
 </style>
