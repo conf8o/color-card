@@ -51,15 +51,6 @@
   // トーンが変更されたときの処理
   function onToneChanged(tone) {
     selectedTone = tone;
-
-    if (isPanelSelected()) {
-      // アクティブなパネルのトーンと色を更新
-      colorPanels[selectedPanelIndex] = {
-        tone: selectedTone,
-        color: pccs_color_map.get(selectedTone)[0],
-      };
-      colorPanels = [...colorPanels]; // 配列の変更を検知させる
-    }
   }
 
   function onColorChanged(color) {
