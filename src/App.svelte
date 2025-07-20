@@ -41,7 +41,7 @@
     return brightness > 128 ? "#000000" : "#ffffff";
   }
 
-  function anyPanelSelected() {
+  function isPanelSelected() {
     return selectedPanelIndex >= 0;
   }
 
@@ -53,7 +53,7 @@
   function onToneChanged(tone) {
     selectedTone = tone;
 
-    if (anyPanelSelected()) {
+    if (isPanelSelected()) {
       // アクティブなパネルのトーンと色を更新
       colorPanels[selectedPanelIndex] = {
         tone: selectedTone,
@@ -64,7 +64,7 @@
   }
 
   function onColorChanged(color) {
-    if (anyPanelSelected()) {
+    if (isPanelSelected()) {
       selectedColor = color;
 
       // アクティブなパネルの色を更新
@@ -101,10 +101,9 @@
     // インデックスを調整
     if (selectedPanelIndex >= colorPanels.length) {
       selectedPanelIndex = colorPanels.length - 1;
+      selectedTone = colorPanels[selectedPanelIndex].tone;
+      selectedColor = colorPanels[selectedPanelIndex].color;
     }
-
-    selectedTone = colorPanels[selectedPanelIndex].tone;
-    selectedColor = colorPanels[selectedPanelIndex].color;
   }
 </script>
 
@@ -121,7 +120,7 @@
               class="tone-item"
               style={((c) =>
                 `background-color: ${c}; color: ${getTextColor(c)};`)(
-                pccs_color_map.get(tone)[17],
+                pccs_color_map.get(tone)[6],
               )}
               on:click={() => onToneChanged(tone)}
               class:selected={tone === selectedTone}
